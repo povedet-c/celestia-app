@@ -1,9 +1,9 @@
 syntax = "proto3";
-package celestia.mint.v1;
+package celestia.mint.v3;
 
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
-import "celestia/mint/v1/mint.proto";
+import "celestia/mint/v3/mint.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/celestiaorg/celestia-app/x/mint/types";

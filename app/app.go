@@ -784,3 +784,15 @@ func (app *App) InitializeAppVersion(ctx sdk.Context) {
 		app.SetAppVersion(ctx, appVersion)
 	}
 }
+
+func (app *App) RunMigrations() []byte {
+	return []byte{}
+}
+
+func (app *App) GetCommitMultiStore() storetypes.CommitMultiStore {
+	return app.CommitMultiStore()
+}
+
+func (app *App) SetCommitMultiStore(cms storetypes.CommitMultiStore) {
+	app.SetCMS(cms)
+}

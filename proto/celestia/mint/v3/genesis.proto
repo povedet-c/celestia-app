@@ -1,5 +1,5 @@
 syntax = "proto3";
-package celestia.mint.v1;
+package celestia.mint.v3;
 
 option go_package = "github.com/celestiaorg/celestia-app/x/mint/types";
 
