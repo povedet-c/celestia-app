@@ -455,6 +455,12 @@ func (app *App) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.R
 func (app *App) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	res := app.manager.EndBlock(ctx, req)
 	currentVersion := app.AppVersion()
+
+	// upgradeHeightV3 is a hard-coded height to upgrade from v2 to v3. We use
+	// this to test the upgrade in the prototype. On mainnet we'll use the
+	// signalling mechanism so remove this pre-merge.
+	upgradeHeightV3 := int64(10)
+
 	// For v1 only we upgrade using a agreed upon height known ahead of time
 	if currentVersion == v1 {
 		// check that we are at the height before the upgrade
@@ -476,6 +482,8 @@ func (app *App) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.Respo
 			app.SetAppVersion(ctx, newVersion)
 			app.SignalKeeper.ResetTally(ctx)
 		}
+	} else if req.Height == upgradeHeightV3-1 {
+		app.SetAppVersion(ctx, 3)
 	}
 	return res
 }
@@ -783,4 +791,10 @@ func (app *App) InitializeAppVersion(ctx sdk.Context) {
 	} else {
 		app.SetAppVersion(ctx, appVersion)
 	}
+}
+
+// RunMigrations is a no-op because the v2 state machine already handles
+// migrating from v1 -> v2 at the v2 upgrade height.
+func (app *App) RunMigrations() []byte {
+	return []byte{}
 }
