@@ -48,7 +48,6 @@ func NewAppServer(logger log.Logger, db dbm.DB, traceStore io.Writer, appOptions
 		cast.ToUint(appOptions.Get(server.FlagInvCheckPeriod)),
 		encoding.MakeConfig(app.ModuleEncodingRegisters...),
 		cast.ToInt64(appOptions.Get(UpgradeHeightFlag)),
-		cast.ToInt64(appOptions.Get(UpgradeHeightFlag)),
 		appOptions,
 		baseapp.SetPruning(pruningOpts),
 		baseapp.SetMinGasPrices(cast.ToString(appOptions.Get(server.FlagMinGasPrices))),

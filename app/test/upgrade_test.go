@@ -128,7 +128,7 @@ func SetupTestAppWithUpgradeHeight(t *testing.T, upgradeHeight int64) (*app.App,
 	db := dbm.NewMemDB()
 	chainID := "test_chain"
 	encCfg := encoding.MakeConfig(app.ModuleEncodingRegisters...)
-	testApp := app.New(log.NewNopLogger(), db, nil, 0, encCfg, upgradeHeight, upgradeHeight, util.EmptyAppOptions{})
+	testApp := app.New(log.NewNopLogger(), db, nil, 0, encCfg, upgradeHeight, util.EmptyAppOptions{})
 	genesisState, _, kr := util.GenesisStateWithSingleValidator(testApp, "account")
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	require.NoError(t, err)

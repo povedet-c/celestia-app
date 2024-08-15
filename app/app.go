@@ -167,9 +167,6 @@ type App struct {
 	// upgradeHeightV2 is used as a coordination mechanism for the height-based
 	// upgrade from v1 to v2.
 	upgradeHeightV2 int64
-	// upgradeHeightv3 is a hard-coded mechanism for the height-based
-	// upgrade from v2 to v3.
-	upgradeHeightV3 int64
 	// MsgGateKeeper is used to define which messages are accepted for a given
 	// app version.
 	MsgGateKeeper *ante.MsgVersioningGateKeeper
@@ -187,7 +184,6 @@ func New(
 	invCheckPeriod uint,
 	encodingConfig encoding.Config,
 	upgradeHeightV2 int64,
-	upgradeHeightV3 int64,
 	appOpts servertypes.AppOptions,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *App {
@@ -214,7 +210,6 @@ func New(
 		tkeys:             tkeys,
 		memKeys:           memKeys,
 		upgradeHeightV2:   upgradeHeightV2,
-		upgradeHeightV3:   upgradeHeightV3,
 	}
 
 	app.ParamsKeeper = initParamsKeeper(appCodec, encodingConfig.Amino, keys[paramstypes.StoreKey], tkeys[paramstypes.TStoreKey])
@@ -457,9 +452,6 @@ func (app *App) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker application updates every begin block
 func (app *App) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	if req.Header.Height == app.upgradeHeightV3 {
-		app.BaseApp.Logger().Info("upgraded from app version 2 to 3")
-	}
 	return app.manager.BeginBlock(ctx, req)
 }
 
@@ -767,12 +759,4 @@ func (app *App) InitializeAppVersion(ctx sdk.Context) {
 
 func (app *App) RunMigrations() []byte {
 	return []byte{}
-}
-
-func (app *App) GetCommitMultiStore() storetypes.CommitMultiStore {
-	return app.CommitMultiStore()
-}
-
-func (app *App) SetCommitMultiStore(cms storetypes.CommitMultiStore) {
-	app.SetCMS(cms)
 }
