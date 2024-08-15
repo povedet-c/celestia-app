@@ -175,8 +175,7 @@ type App struct {
 	MsgGateKeeper *ante.MsgVersioningGateKeeper
 }
 
-// New returns a reference to an uninitialized app. Callers must subsequently
-// call app.Info or app.InitChain to initialize the baseapp.
+// New returns a reference to an initialized app.
 //
 // NOTE: upgradeHeightV2 refers specifically to the height that a node will
 // upgrade from v1 to v2. It will be deprecated in v3 in place for a dynamically
@@ -442,6 +441,14 @@ func New(
 		tmos.Exit(err.Error())
 	}
 
+	height := app.LastBlockHeight()
+	ctx, err := app.CreateQueryContext(height, false)
+	if err != nil {
+		panic(err)
+	}
+	app.SetAppVersion(ctx, v3)
+	app.mountKeysAndInit(3)
+
 	return app
 }
 
@@ -450,8 +457,8 @@ func (app *App) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker application updates every begin block
 func (app *App) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	if req.Header.Height == app.upgradeHeightV2 {
-		app.BaseApp.Logger().Info("upgraded from app version 1 to 2")
+	if req.Header.Height == app.upgradeHeightV3 {
+		app.BaseApp.Logger().Info("upgraded from app version 2 to 3")
 	}
 	return app.manager.BeginBlock(ctx, req)
 }
@@ -460,22 +467,8 @@ func (app *App) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.R
 func (app *App) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	res := app.manager.EndBlock(ctx, req)
 	currentVersion := app.AppVersion()
-	// For v1 only we upgrade using a agreed upon height known ahead of time
-	if currentVersion == v1 {
-		// check that we are at the height before the upgrade
-		if req.Height == app.upgradeHeightV2-1 {
-			app.BaseApp.Logger().Info(fmt.Sprintf("upgrading from app version %v to 2", currentVersion))
-			app.SetInitialAppVersionInConsensusParams(ctx, v2)
-			app.SetAppVersion(ctx, v2)
-
-			// The blobstream module was disabled in v2 so the following line
-			// removes the params subspace for blobstream.
-			if err := app.ParamsKeeper.DeleteSubspace(blobstreamtypes.ModuleName); err != nil {
-				panic(err)
-			}
-		}
-		// from v2 to v3 and onwards we use a signalling mechanism
-	} else if shouldUpgrade, newVersion := app.SignalKeeper.ShouldUpgrade(ctx); shouldUpgrade {
+	// from v3 onwards we use a signalling mechanism
+	if shouldUpgrade, newVersion := app.SignalKeeper.ShouldUpgrade(ctx); shouldUpgrade {
 		// Version changes must be increasing. Downgrades are not permitted
 		if newVersion > currentVersion {
 			app.SetAppVersion(ctx, newVersion)
@@ -519,36 +512,7 @@ func (app *App) migrateModules(ctx sdk.Context, fromVersion, toVersion uint64) e
 //
 // Side-effect: calls baseapp.Init()
 func (app *App) Info(req abci.RequestInfo) abci.ResponseInfo {
-	if height := app.LastBlockHeight(); height > 0 {
-		ctx, err := app.CreateQueryContext(height, false)
-		if err != nil {
-			panic(err)
-		}
-
-		//
-		if height < app.upgradeHeightV2 {
-			app.SetAppVersion(ctx, v1)
-		} else if height < app.upgradeHeightV3 {
-			app.SetAppVersion(ctx, v2)
-		} else {
-			app.SetAppVersion(ctx, v3)
-		}
-
-		// TODO: the following logic doesn't work because the v3 param store never gets updated.
-		// appVersion := app.GetAppVersionFromParamStore(ctx)
-		// if appVersion > 0 {
-		// 	app.SetAppVersion(ctx, appVersion)
-		// } else {
-		// 	app.SetAppVersion(ctx, v1)
-		// }
-	}
-
-	resp := app.BaseApp.Info(req)
-	// mount the stores for the provided app version
-	if resp.AppVersion > 0 && !app.IsSealed() {
-		app.mountKeysAndInit(resp.AppVersion)
-	}
-	return resp
+	return app.BaseApp.Info(req)
 }
 
 // InitChain implements the ABCI interface. This method is a wrapper around
