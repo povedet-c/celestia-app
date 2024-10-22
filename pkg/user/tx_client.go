@@ -29,7 +29,7 @@ import (
 	"github.com/celestiaorg/celestia-app/v2/app/grpc/tx"
 	"github.com/celestiaorg/celestia-app/v2/pkg/appconsts"
 	"github.com/celestiaorg/celestia-app/v2/x/blob/types"
-	"github.com/celestiaorg/celestia-app/v2/x/minfee"
+	"github.com/celestiaorg/celestia-app/v3/x/minfee"
 	"github.com/tendermint/tendermint/rpc/core"
 )
 
