@@ -549,17 +549,8 @@ func (app *App) Info(req abci.RequestInfo) abci.ResponseInfo {
 //
 // Side-effect: calls baseapp.Init()
 func (app *App) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
-	// genesis must always contain the consensus params. The validator set however is derived from the
-	// initial genesis state. The genesis must always contain a non zero app version which is the initial
-	// version that the chain starts on
-	if req.ConsensusParams == nil || req.ConsensusParams.Version == nil {
-		panic("no consensus params set")
-	}
-	if req.ConsensusParams.Version.AppVersion == 0 {
-		panic("app version 0 is not accepted. Please set an app version in the genesis")
-	}
+	req = setDefaultAppVersion(req)
 	appVersion := req.ConsensusParams.Version.AppVersion
-
 	// mount the stores for the provided app version if it has not already been mounted
 	if app.AppVersion() == 0 && !app.IsSealed() {
 		app.mountKeysAndInit(appVersion)
@@ -575,9 +566,26 @@ func (app *App) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain
 	return res
 }
 
+// setDefaultAppVersion sets the default app version in the consensus params if
+// it was 0. This is needed because chains (e.x. mocha-4) did not explicitly set
+// an app version in genesis.json.
+func setDefaultAppVersion(req abci.RequestInitChain) abci.RequestInitChain {
+	if req.ConsensusParams == nil {
+		panic("no consensus params set")
+	}
+	if req.ConsensusParams.Version == nil {
+		panic("no version set in consensus params")
+	}
+	if req.ConsensusParams.Version.AppVersion == 0 {
+		req.ConsensusParams.Version.AppVersion = v1
+	}
+	return req
+}
+
 // mountKeysAndInit mounts the keys for the provided app version and then
 // invokes baseapp.Init().
 func (app *App) mountKeysAndInit(appVersion uint64) {
+	app.Logger().Info(fmt.Sprintf("mounting KV stores for app version %v", appVersion))
 	app.MountKVStores(app.versionedKeys(appVersion))
 
 	// Invoke load latest version for it's side-effect of invoking baseapp.Init()
@@ -592,9 +600,9 @@ func (app *App) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.Res
 	if err := tmjson.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
-
-	app.UpgradeKeeper.SetModuleVersionMap(ctx, app.manager.GetVersionMap(req.ConsensusParams.Version.AppVersion))
-	return app.manager.InitGenesis(ctx, app.appCodec, genesisState, req.ConsensusParams.Version.AppVersion)
+	appVersion := req.ConsensusParams.Version.AppVersion
+	app.UpgradeKeeper.SetModuleVersionMap(ctx, app.manager.GetVersionMap(appVersion))
+	return app.manager.InitGenesis(ctx, app.appCodec, genesisState, appVersion)
 }
 
 // LoadHeight loads a particular height
@@ -797,4 +805,49 @@ func (app *App) InitializeAppVersion(ctx sdk.Context) {
 // migrating from v1 -> v2 at the v2 upgrade height.
 func (app *App) RunMigrations() []byte {
 	return []byte{}
+}
+
+// OfferSnapshot is a wrapper around the baseapp's OfferSnapshot method. It is
+// needed to mount stores for the appropriate app version.
+func (app *App) OfferSnapshot(req abci.RequestOfferSnapshot) abci.ResponseOfferSnapshot {
+	if app.IsSealed() {
+		// If the app is sealed, keys have already been mounted so this can
+		// delegate to the baseapp's OfferSnapshot.
+		return app.BaseApp.OfferSnapshot(req)
+	}
+
+	app.Logger().Info("offering snapshot", "height", req.Snapshot.Height, "app_version", req.AppVersion)
+	if req.AppVersion != 0 {
+		if !isSupportedAppVersion(req.AppVersion) {
+			app.Logger().Info("rejecting snapshot because unsupported app version", "app_version", req.AppVersion)
+			return abci.ResponseOfferSnapshot{
+				Result: abci.ResponseOfferSnapshot_REJECT,
+			}
+		}
+
+		app.Logger().Info("mounting keys for snapshot", "app_version", req.AppVersion)
+		app.mountKeysAndInit(req.AppVersion)
+		return app.BaseApp.OfferSnapshot(req)
+	}
+
+	// If the app version is not set in the snapshot, this falls back to inferring the app version based on the upgrade height.
+	if app.upgradeHeightV2 == 0 {
+		app.Logger().Info("v2 upgrade height not set, assuming app version 2")
+		app.mountKeysAndInit(v2)
+		return app.BaseApp.OfferSnapshot(req)
+	}
+
+	if req.Snapshot.Height >= uint64(app.upgradeHeightV2) {
+		app.Logger().Info("snapshot height is greater than or equal to upgrade height, assuming app version 2")
+		app.mountKeysAndInit(v2)
+		return app.BaseApp.OfferSnapshot(req)
+	}
+
+	app.Logger().Info("snapshot height is less than upgrade height, assuming app version 1")
+	app.mountKeysAndInit(v1)
+	return app.BaseApp.OfferSnapshot(req)
+}
+
+func isSupportedAppVersion(appVersion uint64) bool {
+	return appVersion == v1 || appVersion == v2
 }
