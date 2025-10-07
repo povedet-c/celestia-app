@@ -9,7 +9,7 @@ require (
 	github.com/celestiaorg/go-square v1.1.1
 	github.com/celestiaorg/go-square/v2 v2.0.0
 	github.com/celestiaorg/knuu v0.16.1
-	github.com/celestiaorg/nmt v0.22.2
+	github.com/celestiaorg/nmt v0.24.2
 	github.com/celestiaorg/rsmt2d v0.14.0
 	github.com/cometbft/cometbft-db v1.0.1
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5
@@ -28,7 +28,7 @@ require (
 	github.com/spf13/cast v1.6.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tendermint/tendermint v0.34.29
 	github.com/tendermint/tm-db v0.6.7
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
