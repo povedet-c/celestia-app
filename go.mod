@@ -1,15 +1,15 @@
 module github.com/celestiaorg/celestia-app/v3
 
-go 1.23.1
+go 1.23.6
 
 require (
 	cosmossdk.io/errors v1.0.1
 	cosmossdk.io/math v1.3.0
 	github.com/celestiaorg/blobstream-contracts/v3 v3.1.0
 	github.com/celestiaorg/go-square v1.1.1
-	github.com/celestiaorg/go-square/v2 v2.0.0
+	github.com/celestiaorg/go-square/v2 v2.3.3
 	github.com/celestiaorg/knuu v0.16.1
-	github.com/celestiaorg/nmt v0.22.2
+	github.com/celestiaorg/nmt v0.24.1
 	github.com/celestiaorg/rsmt2d v0.14.0
 	github.com/cometbft/cometbft-db v1.0.1
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5
@@ -28,13 +28,13 @@ require (
 	github.com/spf13/cast v1.6.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tendermint/tendermint v0.34.29
 	github.com/tendermint/tm-db v0.6.7
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
 	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142
 	google.golang.org/grpc v1.67.1
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.36.8
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.31.1
 )
